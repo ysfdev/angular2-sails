@@ -1,7 +1,3 @@
-# important
-This repo is no longer maintained! We switched to [React JS](https://reactjs.org/) completely. Feel free to fork this repo.
-
-
 # angular2-sails
 An angular module for using the sails socket.io api in angular2 (@angular)
 
@@ -109,6 +105,13 @@ The following methods are implemented in the SailsService and will always return
 for more information, please visit [sailsjs.org Documentation for SailsSocket Methods](http://sailsjs.org/documentation/reference/web-sockets/socket-client/sails-socket/methods)
 
 You then have to subscribe to that Observable, to get the data.
+
+## Debug Logging
+By default the service will log all requests from above methods if `restrictedLoggingEnv` is not "production" and `silent` is not enabled;
+
+You can restrict debug logging by updating the `public` variables:
+- `silent`:boolean. Defaults to ```false```. Surpress all debug logging.
+- `restrictedLoggingEnv`:string. Defaults to "production". A default `sails.io.environment` where debug logging should be restricted.
 
 [back to top](#index)
 

@@ -39,6 +39,8 @@ export class SailsService {
     private _serverUrl: string;
     private _pubsubSubscriptions: any;
     public silent:boolean = false;
+    // The default sails.io.environment where debug logging should be restricted
+    public restrictedLoggingEnv:string = "production";
 
     //public observable: Observable<boolean>;
     public subject = new Subject();
@@ -285,11 +287,9 @@ export class SailsService {
         this.zone.runOutsideAngular(() => {
 
             this._io.request(options, (resData, jwres: IJWRes) => {
+                this.logIt({name:"request::data", data:resData});
+                this.logIt({name:"request:jwr", data:jwres});
 
-                if (io.sails.environment != "production") {
-                    console.log("request::data", resData)
-                    console.log("request:jwr", jwres)
-                }
                 if (jwres.statusCode < 200 || jwres.statusCode >= 400) {
                     subject.error({
                         data: resData,
@@ -321,10 +321,9 @@ export class SailsService {
         let subject = new Subject();
         this.zone.runOutsideAngular(() => {
             this._io.get(`${this._restPrefix}${url}`, data, (resData, jwres: IJWRes) => {
-                if (io.sails.environment != "production" && self.silent !== true) {
-                    console.log("get::data", resData)
-                    console.log("get:jwr", jwres)
-                }
+                this.logIt({name:"get::data", data:resData});
+                this.logIt({name:"get:jwr", data:jwres});
+
                 if (jwres.statusCode < 200 || jwres.statusCode >= 400) {
                     subject.error({
                         data: resData,
@@ -358,10 +357,9 @@ export class SailsService {
         this.zone.runOutsideAngular(() => {
 
             this._io.post(url, data, (resData, jwres: IJWRes) => {
-                if (io.sails.environment != "production" && self.silent !== true) {
-                    console.log("post::data", resData);
-                    console.log("post:jwr", jwres);
-                }
+                this.logIt({name:"post::data", data: resData});
+                this.logIt({name:"post:jwr", data:jwres});
+
                 if (jwres.statusCode < 200 || jwres.statusCode >= 400) {
                     subject.error({
                         data: resData,
@@ -394,10 +392,9 @@ export class SailsService {
 
         this.zone.runOutsideAngular(() => {
             this._io.put(url, data, (resData, jwres: IJWRes) => {
-                if (io.sails.environment != "production" && self.silent !== true) {
-                    console.log("put::data", resData);
-                    console.log("put:jwr", jwres);
-                }
+                this.logIt({name:"put::data", data: resData});
+                this.logIt({name:"put:jwr", data: jwres});
+
                 if (jwres.statusCode < 200 || jwres.statusCode >= 400) {
                     subject.error({
                         data: resData,
@@ -431,10 +428,9 @@ export class SailsService {
 
         this.zone.runOutsideAngular(() => {
             this._io.patch(url, data, (resData, jwres: IJWRes) => {
-                if (io.sails.environment != "production" && self.silent !== true) {
-                    console.log("patch::data", resData);
-                    console.log("patch:jwr", jwres);
-                }
+                  this.logIt({name:"patch::data", data:resData});
+                  this.logIt({name:"patch:jwr", data:jwres});
+
                 if (jwres.statusCode < 200 || jwres.statusCode >= 400) {
                     subject.error({
                         data: resData,
@@ -467,10 +463,9 @@ export class SailsService {
         let subject = new Subject();
         this.zone.runOutsideAngular(() => {
             this._io.delete(url, data, (resData, jwres: IJWRes) => {
-                if (io.sails.environment != "production" && self.silent !== true) {
-                    console.log("delete::data", resData);
-                    console.log("delete:jwr", jwres);
-                }
+                this.logIt({name:"delete::data", data: resData});
+                this.logIt({name:"delete:jwr", data:jwres});
+
                 if (jwres.statusCode < 200 || jwres.statusCode >= 400) {
                     subject.error({
                         data: resData,
@@ -497,19 +492,30 @@ export class SailsService {
      * @return {Observable<T>}
      */
     on(eventIdentity: string): Observable<any> {
-        let self = this;
         if (!this._pubsubSubscriptions[eventIdentity] || this._pubsubSubscriptions[eventIdentity].isComplete) {
             this._pubsubSubscriptions[eventIdentity] = new Subject();
             this.zone.runOutsideAngular(() => {
                 this._io.on(eventIdentity, msg => {
-
-                    if (io.sails.environment != "production" && self.silent !== true) {
-                        console.log(`on::${eventIdentity}`, msg);
-                    }
+                    this.logIt({name:`on::${eventIdentity}`, data:msg});
                     this.zone.run(() => this._pubsubSubscriptions[eventIdentity].next(msg));
                 })
             })
         }
         return this._pubsubSubscriptions[eventIdentity].asObservable();
+    }
+
+    /**
+     * If we have permission for logging, Log given debug data
+     * @param {String} type
+     * @param {String} name
+     * @param {any} data
+     */
+    private logIt({type = "log", name =  "", data}) {
+      if (this.canLogDebugData())
+        console[type](name, data);
+    }
+
+    private canLogDebugData(): Boolean {
+      return (io.sails.environment !== this.restrictedLoggingEnv && this.silent !== true);
     }
 }
